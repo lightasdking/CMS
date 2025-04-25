@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./node_modules/@prisma/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id       String @id
+  username String @unique
+}
+
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  classId     Int?
+  date        DateTime
+  Class       Class?   @relation(fields: [classId], references: [id])
+
+  @@index([classId], map: "Announcement_classId_fkey")
+}
+
+model Assignment {
+  id        Int      @id @default(autoincrement())
+  title     String
+  dueDate   DateTime
+  lessonId  Int
+  startDate DateTime
+  Lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  Result    Result[]
+
+  @@index([lessonId], map: "Assignment_lessonId_fkey")
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  studentId String
+  lessonId  Int
+  present   Boolean
+  Lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  Student   Student  @relation(fields: [studentId], references: [id])
+
+  @@index([lessonId], map: "Attendance_lessonId_fkey")
+  @@index([studentId], map: "Attendance_studentId_fkey")
+}
+
+model Class {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  capacity     Int
+  supervisorId String?
+  gradeId      Int
+  Announcement Announcement[]
+  Grade        Grade          @relation(fields: [gradeId], references: [id])
+  Teacher      Teacher?       @relation(fields: [supervisorId], references: [id])
+  Event        Event[]
+  Lesson       Lesson[]
+  Student      Student[]
+
+  @@index([gradeId], map: "Class_gradeId_fkey")
+  @@index([supervisorId], map: "Class_supervisorId_fkey")
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  startTime   DateTime
+  endTime     DateTime
+  classId     Int?
+  Class       Class?   @relation(fields: [classId], references: [id])
+
+  @@index([classId], map: "Event_classId_fkey")
+}
+
+model Exam {
+  id        Int      @id @default(autoincrement())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  lessonId  Int
+  Lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  Result    Result[]
+
+  @@index([lessonId], map: "Exam_lessonId_fkey")
+}
+
+model Grade {
+  id      Int       @id @default(autoincrement())
+  level   Int       @unique
+  Class   Class[]
+  Student Student[]
+}
+
+model Lesson {
+  id         Int          @id @default(autoincrement())
+  name       String
+  day        Day
+  startTime  DateTime
+  endTime    DateTime
+  subjectId  Int
+  classId    Int
+  teacherId  String
+  createdAt  DateTime     @default(now())
+  recurring  Boolean      @default(false)
+  updatedAt  DateTime     @default(now()) @updatedAt
+  weekDay    Int?
+  Assignment Assignment[]
+  Attendance Attendance[]
+  Exam       Exam[]
+  Class      Class        @relation(fields: [classId], references: [id])
+  Subject    Subject      @relation(fields: [subjectId], references: [id])
+  Teacher    Teacher      @relation(fields: [teacherId], references: [id])
+
+  @@index([classId])
+  @@index([subjectId])
+  @@index([teacherId])
+}
+
+model Parent {
+  id        String    @id
+  username  String    @unique
+  name      String
+  surname   String
+  email     String?   @unique
+  phone     String    @unique
+  address   String
+  createdAt DateTime  @default(now())
+  Student   Student[]
+}
+
+model Result {
+  id           Int         @id @default(autoincrement())
+  examId       Int?
+  assignmentId Int?
+  studentId    String
+  score        Int
+  Assignment   Assignment? @relation(fields: [assignmentId], references: [id])
+  Exam         Exam?       @relation(fields: [examId], references: [id])
+  Student      Student     @relation(fields: [studentId], references: [id])
+
+  @@index([assignmentId], map: "Result_assignmentId_fkey")
+  @@index([examId], map: "Result_examId_fkey")
+  @@index([studentId], map: "Result_studentId_fkey")
+}
+
+model Student {
+  id         String       @id
+  username   String       @unique
+  name       String
+  surname    String
+  email      String?      @unique
+  phone      String?      @unique
+  address    String
+  img        String?
+  bloodType  String
+  sex        Student_sex
+  createdAt  DateTime     @default(now())
+  parentId   String
+  classId    Int
+  gradeId    Int
+  Attendance Attendance[]
+  Result     Result[]
+  Class      Class        @relation(fields: [classId], references: [id])
+  Grade      Grade        @relation(fields: [gradeId], references: [id])
+  Parent     Parent       @relation(fields: [parentId], references: [id])
+
+  @@index([classId], map: "Student_classId_fkey")
+  @@index([gradeId], map: "Student_gradeId_fkey")
+  @@index([parentId], map: "Student_parentId_fkey")
+}
+
+model Subject {
+  id      Int       @id @default(autoincrement())
+  name    String    @unique
+  Lesson  Lesson[]
+  Teacher Teacher[] @relation("SubjectToTeacher")
+}
+
+model Teacher {
+  id        String      @id
+  username  String      @unique
+  name      String      @db.VarChar(255)
+  surname   String
+  email     String?     @unique
+  phone     String?     @unique
+  address   String
+  img       String?
+  bloodType String
+  sex       Teacher_sex
+  createdAt DateTime    @default(now())
+  Class     Class[]
+  Lesson    Lesson[]
+  Subject   Subject[]   @relation("SubjectToTeacher")
+}
+
+enum Teacher_sex {
+  MALE
+  FEMALE
+}
+
+enum Student_sex {
+  MALE
+  FEMALE
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
